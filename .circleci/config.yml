@@ -1,11 +1,49 @@
-version: 2
+version: 2.1
+
+executors:
+  my-executor:
+    docker:
+      - image: cimg/node:lts
+
+commands:
+  say-hello:
+    description: "Says hello"
+    parameters:
+      to:
+        type: string
+        default: "world"
+    steps:
+      - run: echo Hello, << parameters.to >>
 
 jobs:
   build:
-    docker:
-      - image: cimg/node:lts
-    # working_directory: ~/project
+    executor: my-executor
     steps:
       - checkout
       - run: npm install
       - run: npm test
+      # - say-hello
+  install_deps:
+    executor: my-executor
+    steps:
+      - run: echo "Installing dependencies"
+  test_a:
+    executor: my-executor
+    steps:
+      - run: echo "executing test A"
+  test_b:
+    executor: my-executor
+    steps:
+      - run: echo "executing test B"
+workflows:
+  version: 2
+  workflow:
+    jobs:
+      - build
+      - install_deps
+      - test_a:
+          requires:
+            - install_deps
+      - test_b:
+          requires:
+            - install_deps
