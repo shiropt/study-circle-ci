@@ -35,6 +35,13 @@ jobs:
     executor: my-executor
     steps:
       - run: echo "executing test B"
+  env_test:
+    executor: my-executor
+    steps:
+      - run: echo "CI is $CI"
+      - run: echo "CIRCLE_SHA is $CIRCLE_SHA"
+      - run: echo "CIRCLE_BRANCH is $CIRCLE_BRANCH"
+
 workflows:
   version: 2
   workflow:
@@ -47,3 +54,4 @@ workflows:
       - test_b:
           requires:
             - install_deps
+      - env_test
