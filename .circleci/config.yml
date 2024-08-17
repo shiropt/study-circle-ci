@@ -19,6 +19,14 @@ jobs:
   build:
     executor: my-executor
     steps:
+      - run:
+          name: ステップで定義された環境変数を利用する
+          environment:
+            NODE_ENV: production
+          command: echo "NODE_ENV is $NODE_ENV"
+      - run:
+          name: 環境変数は引き継がれない
+          command: echo "NODE_ENV is $NODE_ENV"
       - checkout
       - run: npm install
       - run: npm test
@@ -35,12 +43,24 @@ jobs:
     executor: my-executor
     steps:
       - run: echo "executing test B"
-  env_test:
+  envvar_test:
     executor: my-executor
     steps:
-      - run: echo "CI is $CI"
-      - run: echo "CIRCLE_SHA is $CIRCLE_SHA"
-      - run: echo "CIRCLE_BRANCH is $CIRCLE_BRANCH"
+      - run:
+          name: ステップ定義の環境変数を設定する
+          environment:
+            STEP_VARIABLE: "This is a step variable"
+          command: echo "STEP_VARIABLE is $STEP_VARIABLE"
+      - run:
+          name: プロジェクト設定の環境変数を出力する
+          command: echo "EXAMPLE_VARIABLES is $EXAMPLE_VARIABLES"
+      - run:
+          name: コンテキストの環境変数を出力する
+          command: echo "CONTEXT_TEXT is $CONTEXT_TEXT"
+      - run:
+          name: base64で符号化されたプロジェクト設定の環境変数を出力する
+          environment:
+          command: echo $BASE64_PROJECT_VARIABLE | base64 --decode
 
 workflows:
   version: 2
@@ -54,4 +74,5 @@ workflows:
       - test_b:
           requires:
             - install_deps
-      - env_test
+      - envvar_test:
+          context: TEST_COMTEXT
