@@ -1,89 +1,45 @@
-version: 2.1
 orbs:
   slack: circleci/slack@4.13.3
 
 executors:
-  my-executor:
+  default:
     docker:
       - image: cimg/node:lts
+    working_directory: ~/repo
 
-commands:
-  say-hello:
-    description: "Says hello"
-    parameters:
-      to:
-        type: string
-        default: "world"
-    steps:
-      - run: echo Hello, << parameters.to >>
+version: 2.1
 
 jobs:
-  build:
-    executor: my-executor
+  setup:
+    executor: default
     steps:
-      - run:
-          name: ステップで定義された環境変数を利用する
-          environment:
-            NODE_ENV: production
-          command: echo "NODE_ENV is $NODE_ENV"
-      - run:
-          name: 環境変数は引き継がれない
-          command: echo "NODE_ENV is $NODE_ENV"
       - checkout
-      - run: npm install
-      - run: npm test
+      - run:
+          name: install node_modules
+          command: npm install
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - node_modules
+  test_jest:
+    executor: default
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Run Jest
+          command: TZ='Asia/Tokyo' npx jest --ci
       - slack/notify:
-          event: pass
-          template: basic_success_1
-          mentions: "@shiro_pon "
-      - slack/notify:
-          event: fail
-          template: basic_fail_1
-          mentions: "@shiro_pon "
-      # - say-hello
-  install_deps:
-    executor: my-executor
-    steps:
-      - run: echo "Installing dependencies"
-  test_a:
-    executor: my-executor
-    steps:
-      - run: echo "executing test A"
-  test_b:
-    executor: my-executor
-    steps:
-      - run: echo "executing test B"
-  envvar_test:
-    executor: my-executor
-    steps:
-      - run:
-          name: ステップ定義の環境変数を設定する
-          environment:
-            STEP_VARIABLE: "This is a step variable"
-          command: echo "STEP_VARIABLE is $STEP_VARIABLE"
-      - run:
-          name: プロジェクト設定の環境変数を出力する
-          command: echo "EXAMPLE_VARIABLES is $EXAMPLE_VARIABLES"
-      - run:
-          name: コンテキストの環境変数を出力する
-          command: echo "CONTEXT_TEXT is $CONTEXT_TEXT"
-      - run:
-          name: base64で符号化されたプロジェクト設定の環境変数を出力する
-          environment:
-          command: echo $BASE64_PROJECT_VARIABLE | base64 --decode
+          event: always
+          mentions: "@channel"
 
 workflows:
   version: 2
-  workflow:
+  build_test:
     jobs:
-      - build:
+      - setup
+      - test_jest:
           context: SLACK_ACCESS_TOKEN
-      - install_deps
-      - test_a:
           requires:
-            - install_deps
-      - test_b:
-          requires:
-            - install_deps
-      - envvar_test:
-          context: TEST_COMTEXT
+            - setup
