@@ -1,4 +1,6 @@
 version: 2.1
+orbs:
+  slack: circleci/slack@4.13.3
 
 executors:
   my-executor:
@@ -30,6 +32,14 @@ jobs:
       - checkout
       - run: npm install
       - run: npm test
+      - slack/notify:
+          event: pass
+          template: basic_success_1
+          mentions: "@shiro_pon "
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+          mentions: "@shiro_pon "
       # - say-hello
   install_deps:
     executor: my-executor
@@ -66,7 +76,8 @@ workflows:
   version: 2
   workflow:
     jobs:
-      - build
+      - build:
+          context: SLACK_ACCESS_TOKEN
       - install_deps
       - test_a:
           requires:
