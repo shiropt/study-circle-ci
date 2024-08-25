@@ -32,8 +32,8 @@ jobs:
           name: 環境変数は引き継がれない
           command: echo "NODE_ENV is $NODE_ENV"
       - checkout
-      - run: npm install
-      - run: npm test
+      - run: yarn install
+      - run: yarn test
       - slack/notify:
           event: pass
           template: basic_success_1
