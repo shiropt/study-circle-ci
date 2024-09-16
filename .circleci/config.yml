@@ -6,19 +6,9 @@ executors:
   executor:
     docker:
       - image: cimg/node:lts
-        environment:
-          NODE_PATH: usr/local/lib/node_modules
+    working_directory: /home/circleci/study-circleci
+
 commands:
-  install_deps:
-    steps:
-      - run:
-          name: Install dependencies
-          command: yarn install
-  test:
-    steps:
-      - run:
-          name: Execute unit test
-          command: yarn test
   slack-notify:
     steps:
       - slack/notify:
@@ -31,19 +21,71 @@ commands:
           mentions: "@shiro_pon"
 
 jobs:
+  setup:
+    executor: executor
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: yarn install
+
+      - persist_to_workspace:
+          root: /home/circleci/study-circleci
+          paths:
+            - node_modules
+  typecheck:
+    executor: executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: TypeCheck
+          command: yarn typecheck
+  lint:
+    executor: executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Lint
+          command: yarn lint
+  jest:
+    executor: executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Jest
+          command: yarn jest
   build:
     executor: executor
     steps:
       - checkout
-      - install_deps
-      - test
+      - attach_workspace:
+          at: .
       - run:
           name: Build
           command: yarn build
+      - slack-notify
 
 workflows:
   version: 2
   workflow:
     jobs:
+      - setup
+      - typecheck:
+          requires:
+            - setup
+      - lint:
+          requires:
+            - setup
+      - jest:
+          requires:
+            - setup
       - build:
+          requires:
+            - setup
           context: SLACK_ACCESS_TOKEN
