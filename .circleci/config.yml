@@ -3,89 +3,89 @@ orbs:
   slack: circleci/slack@4.13.3
 
 executors:
-  my-executor:
+  executor:
     docker:
       - image: cimg/node:lts
-        environment:
-          NODE_PATH: usr/local/lib/node_modules
+    working_directory: /home/circleci/study-circleci
 
 commands:
-  say-hello:
-    description: "Says hello"
-    parameters:
-      to:
-        type: string
-        default: "world"
+  slack-notify:
     steps:
-      - run: echo Hello, << parameters.to >>
-
-jobs:
-  build:
-    executor: my-executor
-    steps:
-      - run:
-          name: ステップで定義された環境変数を利用する
-          environment:
-            NODE_ENV: production
-          command: echo "NODE_ENV is $NODE_ENV"
-      - run:
-          name: 環境変数は引き継がれない
-          command: echo "NODE_ENV is $NODE_ENV"
-      - checkout
-      - run: yarn install
-      - run: yarn test
       - slack/notify:
           event: pass
           template: basic_success_1
-          mentions: "@shiro_pon "
+          mentions: "@shiro_pon"
       - slack/notify:
           event: fail
           template: basic_fail_1
-          mentions: "@shiro_pon "
-      # - say-hello
-  install_deps:
-    executor: my-executor
+          mentions: "@shiro_pon"
+
+jobs:
+  setup:
+    executor: executor
     steps:
-      - run: echo "Installing dependencies"
-  test_a:
-    executor: my-executor
+      - checkout
+      - run:
+          name: Install dependencies
+          command: yarn install
+
+      - persist_to_workspace:
+          root: /home/circleci/study-circleci
+          paths:
+            - node_modules
+  typecheck:
+    executor: executor
     steps:
-      - run: echo "executing test A"
-  test_b:
-    executor: my-executor
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: TypeCheck
+          command: yarn typecheck
+  lint:
+    executor: executor
     steps:
-      - run: echo "executing test B"
-  envvar_test:
-    executor: my-executor
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Lint
+          command: yarn lint
+  jest:
+    executor: executor
     steps:
+      - checkout
+      - attach_workspace:
+          at: .
       - run:
-          name: ステップ定義の環境変数を設定する
-          environment:
-            STEP_VARIABLE: "This is a step variable"
-          command: echo "STEP_VARIABLE is $STEP_VARIABLE"
+          name: Jest
+          command: yarn jest
+  build:
+    executor: executor
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
       - run:
-          name: プロジェクト設定の環境変数を出力する
-          command: echo "EXAMPLE_VARIABLES is $EXAMPLE_VARIABLES"
-      - run:
-          name: コンテキストの環境変数を出力する
-          command: echo "CONTEXT_TEXT is $CONTEXT_TEXT"
-      - run:
-          name: base64で符号化されたプロジェクト設定の環境変数を出力する
-          environment:
-          command: echo $BASE64_PROJECT_VARIABLE | base64 --decode
+          name: Build
+          command: yarn build
+      - slack-notify
 
 workflows:
   version: 2
   workflow:
     jobs:
+      - setup
+      - typecheck:
+          requires:
+            - setup
+      - lint:
+          requires:
+            - setup
+      - jest:
+          requires:
+            - setup
       - build:
+          requires:
+            - setup
           context: SLACK_ACCESS_TOKEN
-      - install_deps
-      - test_a:
-          requires:
-            - install_deps
-      - test_b:
-          requires:
-            - install_deps
-      - envvar_test:
-          context: TEST_COMTEXT

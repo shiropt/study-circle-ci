@@ -8,7 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "TZ='Asia/Tokyo' jest"
+    "jest": "TZ='Asia/Tokyo' jest",
+    "typecheck": "tsc --noEmit",
+    "test": "yarn typecheck && yarn  lint && yarn jest"
   },
   "dependencies": {
     "jest": "^29.7.0",
